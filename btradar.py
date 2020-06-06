@@ -14,8 +14,7 @@ import mysql.connector
 
 # Define signal handler to catch SIGINT event
 def signal_handler_sigint(sig, frame):
-    now = GetCurrentTimeUTC()
-    print(now, "Catched SIGINT, exiting now.")
+    print(GetCurrentTimeUTC(), "Catched SIGINT, exiting now.")
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler_sigint)
@@ -100,19 +99,79 @@ class ScanDelegate(btle.DefaultDelegate):
         btle.DefaultDelegate.__init__(self)
 
     def handleDiscovery(self, dev, isNewDev, isNewData):
-        now = GetCurrentTimeUTC()
         if isNewDev:
-            print(now, "Discovered device", dev.addr)
-            db.execute_sql('insert ignore into devices (addr, addrType, name, connectable) values (%s,%s,%s,%s)', (dev.addr, dev.addrType[:1], dev.getValueText(9), dev.connectable))
-            db.execute_sql('insert ignore into seen (addr, time, rssi, seenby) values (%s,%s,%s,%s)', (dev.addr, now, dev.rssi, thishost))
+            print(GetCurrentTimeUTC(), "Discovered device", dev.addr)
+            db.execute_sql(
+                    'insert ignore into devices '
+                    '(addr, addrType, name, connectable) values '
+                    '(%s,%s,%s,%s)',
+                    (
+                        dev.addr,
+                        dev.addrType[:1],
+                        dev.getValueText(9),
+                        dev.connectable
+                        )
+                    )
+            db.execute_sql(
+                    'insert ignore into seen '
+                    '(addr, time, rssi, seenby) values '
+                    '(%s,%s,%s,%s)',
+                    (
+                        dev.addr,
+                        GetCurrentTimeUTC(),
+                        dev.rssi,
+                        thishost
+                        )
+                    )
             for (adtype, descr, value) in dev.getScanData():
-                db.execute_sql('insert ignore into scandata (addr, adtype, descr, value) values (%s,%s,%s,%s)', (dev.addr, adtype, descr, value))
+                db.execute_sql(
+                        'insert ignore into scandata '
+                        '(addr, adtype, descr, value) values '
+                        '(%s,%s,%s,%s)',
+                        (
+                            dev.addr,
+                            adtype,
+                            descr,
+                            value
+                            )
+                        )
         elif isNewData:
             print(now, "Received new data from", dev.addr)
-            db.execute_sql('update devices set addrType=%s, name=%s, connectable=%s where addr=%s', (dev.addrType[:1], dev.getValueText(9), dev.connectable, dev.addr))
-            db.execute_sql('insert ignore into seen (addr, time, rssi, seenby) values (%s,%s,%s,%s)', (dev.addr, now, dev.rssi, thishost))
+            db.execute_sql(
+                    'update devices set '
+                    'addrType=%s, '
+                    'name=%s, '
+                    'connectable=%s where addr=%s',
+                    (
+                        dev.addrType[:1],
+                        dev.getValueText(9),
+                        dev.connectable,
+                        dev.addr
+                        )
+                    )
+            db.execute_sql(
+                    'insert ignore into seen '
+                    '(addr, time, rssi, seenby) values '
+                    '(%s,%s,%s,%s)',
+                    (
+                        dev.addr,
+                        GetCurrentTimeUTC(),
+                        dev.rssi,
+                        thishost
+                        )
+                    )
             for (adtype, descr, value) in dev.getScanData():
-                db.execute_sql('insert ignore into scandata (addr, adtype, descr, value) values (%s,%s,%s,%s)', (dev.addr, adtype, descr, value))
+                db.execute_sql(
+                        'insert ignore into scandata '
+                        '(addr, adtype, descr, value) values '
+                        '(%s,%s,%s,%s)',
+                        (
+                            dev.addr,
+                            adtype,
+                            descr,
+                            value
+                            )
+                        )
 
 config = Config(argv[1])
 db = Dbase(config)
@@ -123,22 +182,19 @@ def main():
     scanner = btle.Scanner().withDelegate(ScanDelegate())
     while True:
         try:
-            now = GetCurrentTimeUTC()
-            print(now, "Restart Bluetooth Scanning")
+            print(GetCurrentTimeUTC(), "Restart Bluetooth Scanning")
             devices = scanner.scan(60)
             # Wait a short time before start the next scan
             #sleep(1)
             continue
         except btle.BTLEDisconnectError as error:
-            now = GetCurrentTimeUTC()
-            print(now, "Bluetooth error occured:", error)
+            print(GetCurrentTimeUTC(), "Bluetooth error occured:", error)
             # Wait a second to ensure things settle
             sleep(1)
             # Now, resume
             pass
         except Exception as error:
-            now = GetCurrentTimeUTC()
-            print(now, "Unknown errror occured:", error)
+            print(GetCurrentTimeUTC(), "Unknown errror occured:", error)
             print(traceback.format_exc())
             sys.exit(1)
 
