@@ -136,7 +136,7 @@ class ScanDelegate(btle.DefaultDelegate):
                             )
                         )
         elif isNewData:
-            print(now, "Received new data from", dev.addr)
+            print(GetCurrentTimeUTC(), "Received new data from", dev.addr)
             db.execute_sql(
                     'update devices set '
                     'addrType=%s, '
