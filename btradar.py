@@ -5,14 +5,17 @@ import sys, os
 from sys import argv
 import socket
 
-from time import gmtime, strftime
+import traceback
 
-from bluepy.btle import Scanner, DefaultDelegate
+from time import gmtime, strftime, sleep
+
+import bluepy.btle as btle
 import mysql.connector
 
 # Define signal handler to catch SIGINT event
 def signal_handler_sigint(sig, frame):
-    print("  INT: Catched SIGINT, exiting now.")
+    now = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    print(now, "Catched SIGINT, exiting now.")
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler_sigint)
@@ -89,9 +92,9 @@ class Dbase:
     def _disconnect(self):
         self.connection.close()
 
-class ScanDelegate(DefaultDelegate):
+class ScanDelegate(btle.DefaultDelegate):
     def __init__(self):
-        DefaultDelegate.__init__(self)
+        btle.DefaultDelegate.__init__(self)
 
     def handleDiscovery(self, dev, isNewDev, isNewData):
         now = strftime("%Y-%m-%d %H:%M:%S", gmtime())
@@ -114,15 +117,25 @@ db = Dbase(config)
 thishost = socket.gethostname()
 
 def main():
-    scanner = Scanner().withDelegate(ScanDelegate())
+    scanner = btle.Scanner().withDelegate(ScanDelegate())
     while True:
         try:
             devices = scanner.scan(60)
+            # Wait a short time before start the next scan
+            #sleep(1)
             continue
-        except:
+        except btle.BTLEDisconnectError as error:
             now = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-            print(now, "bluetooth error occured")
+            print(now, "Bluetooth error occured:", error)
+            # Wait a second to ensure things settle
+            sleep(1)
+            # Now, resume
             pass
+        except Exception as error:
+            now = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+            print(now, "Unknown errror occured:", error)
+            print(traceback.format_exc())
+            sys.exit(1)
 
 if __name__ == '__main__':
     main()
